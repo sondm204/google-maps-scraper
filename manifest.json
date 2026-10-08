@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Khrua",
+  "description": "Base Level Extension",
+  "version": "1.0",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "images.png"
+  },
+  "permissions": [
+    "identity",
+    "storage",
+    "tabs",
+    "https://www.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "oauth2": {
+    "client_id": "183641202003-feahvg9qau0muv1rq93as7bl9brkk324.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/drive",
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email"
+    ]
+  },
+  "host_permissions": ["https://www.googleapis.com/*"],
+
+  "content_scripts": [
+    {
+      "js": ["scripts/content.js"],
+      "matches": ["https://www.google.com/*"]
+    }
+  ]
+}

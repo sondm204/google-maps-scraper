@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Khrua Rate Extension</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    p {
+      margin: 0;
+    }
+
+
+    .container {
+      width: 100%;
+    }
+
+    .account {
+      display: flex;
+      justify-content: right;
+      align-items: center;
+    }
+
+    .account-info {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid #3f56b7;
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .account-info:hover #logout {
+      opacity: 1;
+    }
+
+    #logout {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.15s ease-in-out;
+    }
+
+    #logout:hover {
+      color: red;
+    }
+
+    #authorize_button {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid #3f56b7;
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+    }
+
+    #authorize_button:hover {
+      background-color: #3f56b7;
+      color: white;
+    }
+
+    .account-info img {
+      width: 30px;
+      border-radius: 50%;
+    }
+
+    .account-name {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .account-name #username {
+      font-weight: bold;
+    }
+
+    .account-name #email {
+      font-size: 12px;
+      color: #666;
+    }
+
+    #authorize_button {
+      display: none;
+    }
+
+    .header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .input-row {
+      width: 100%;
+
+    }
+
+    .input-row input,
+    .input-row select,
+    .input-row textarea {
+      width: 100%;
+      padding: 5px 0 5px 10px;
+      border-radius: 6px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px 0;
+      border-radius: 6px;
+      background-color: #3f56b7;
+      color: white;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .btn:hover {
+      background-color: #008533;
+    }
+  </style>
+</head>
+
+<body style="width: 300px; display: flex;">
+  <div class="container">
+    <div class="account">
+      <div class="account-info" id="account-info">
+        <img id="avatar" src="" alt="avatar">
+        <div class="account-name">
+          <p id="username"></p>
+          <p id="email"></p>
+        </div>
+        <div id="logout">Đăng xuất</div>
+      </div>
+      <div id="authorize_button">Đăng nhập</div>
+    </div>
+    <div class="header">
+      <h1>Khrua Rate Extension</h1>
+    </div>
+    <div class="input-container">
+      <div class="input-row">
+        <input type="text" name="spreadsheet" id="spreadsheet" disabled
+          value="1BEnway_QOzNF_CnQSV541q23eFk5g5azEcuUX_pLCyU">
+      </div>
+      <div class="input-row">
+        <input name="sheet-name" type="text" placeholder="Tên Sheet">
+      </div>
+      <div class="input-row">
+        <label for="date-from">Từ ngày</label>
+        <input name="date-from" id="date-from" type="date">
+      </div>
+      <div class="input-row">
+        <label for="date-to">Đến ngày</label>
+        <input name="date-to" id="date-to" type="date">
+      </div>
+      <div class="input-row">
+        <textarea name="facilities" id="facilities" rows="8"
+          placeholder="Mỗi dòng là một địa điểm, ví dụ:&#10;Koh Yam 34A Quang Trung&#10;Koh Yam 2D Quang Trung"></textarea>
+      </div>
+    </div>
+    <div class="btn-container">
+      <button class="btn" id="execute_button">Bắt đầu</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
