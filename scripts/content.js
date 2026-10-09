@@ -8,6 +8,13 @@ chrome.runtime.onMessage.addListener((request) => {
     if (request.action === 'processComplete') {
         alert(`Đã lấy review và lưu vào Google Sheet thành công cho ${request.processedCount} địa điểm.`);
     }
+
+    if (request.action === 'scheduledConfirm') {
+        const accepted = window.confirm(
+            'Đã đến giờ lấy Google Reviews. Bạn có muốn bắt đầu và lưu dữ liệu vào Google Sheet ngay bây giờ không?'
+        );
+        chrome.runtime.sendMessage({ action: 'scheduledDecision', accepted });
+    }
 });
 
 waitForElement('[jsaction="click:pwGece"]').then(async () => {

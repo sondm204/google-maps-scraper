@@ -14,6 +14,27 @@ let reviewPeriod = 'week';
 
 let currentTabIndex = 0;
 let isMultiProcess = false;
+
+const startCrawlSession = (values) => {
+  spreadsheetId = values.spreadsheetId || '';
+  sheetName = values.sheetName || 'Đặt tên sheet';
+  reviewPeriod = values.reviewPeriod || 'week';
+  facilitiesAll = Array.isArray(values.facilities) ? values.facilities : [];
+  currentTabIndex = 0;
+  isMultiProcess = true;
+
+  chrome.storage.local.set({
+    crawlConfig: {
+      spreadsheetId,
+      sheetName,
+      facility: '',
+      facilities: facilitiesAll,
+      currentTabIndex,
+      reviewPeriod
+    }
+  }, createTabSequentially);
+};
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "authorize") {
     console.log("Received authorize request in background");
@@ -89,28 +110,42 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'startMultiProcess') {
-    if (request.values) {
-      spreadsheetId = request.values.spreadsheetId || "";
-      sheetName = request.values.sheetName || 'Đặt tên sheet';
-      reviewPeriod = request.values.reviewPeriod || 'week';
-      facilitiesAll = Array.isArray(request.values.facilities)
-        ? request.values.facilities
-        : [];
-      isMultiProcess = true;
-      chrome.storage.local.set({
-        crawlConfig: {
-          spreadsheetId,
-          sheetName,
-          facility: '',
-          facilities: facilitiesAll,
-          currentTabIndex: 0,
-          reviewPeriod
-        }
-      }, () => {
-        currentTabIndex = 0;
-        createTabSequentially();
-      });
+    if (request.values) startCrawlSession(request.values);
+    return true;
+  }
+
+  if (request.action === 'scheduleProcess') {
+    const scheduledAt = Number(request.values?.scheduledAt);
+    if (!scheduledAt || scheduledAt <= Date.now()) {
+      sendResponse({ success: false, error: 'Thời gian hẹn không hợp lệ' });
+      return true;
     }
+
+    chrome.storage.local.set({ scheduledCrawlConfig: request.values }, () => {
+      chrome.alarms.create('scheduledReviewCrawl', { when: scheduledAt });
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
+  if (request.action === 'scheduledDecision') {
+    if (!request.accepted) {
+      chrome.storage.local.remove('scheduledCrawlConfig');
+      sendResponse({ success: true });
+      return true;
+    }
+
+    chrome.storage.local.get('scheduledCrawlConfig', (stored) => {
+      const config = stored.scheduledCrawlConfig;
+      if (!config) {
+        sendResponse({ success: false, error: 'Không tìm thấy cấu hình crawl đã hẹn lịch' });
+        return;
+      }
+
+      chrome.storage.local.remove('scheduledCrawlConfig');
+      startCrawlSession(config);
+      sendResponse({ success: true });
+    });
     return true;
   }
 
@@ -193,6 +228,59 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true;
   }
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== 'scheduledReviewCrawl') return;
+
+  chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+    const activeTabId = tabs[0]?.id;
+
+    if (activeTabId === undefined) {
+      showScheduledNotification();
+      return;
+    }
+
+    chrome.tabs.sendMessage(activeTabId, { action: 'scheduledConfirm' }, () => {
+      if (chrome.runtime.lastError) showScheduledNotification();
+    });
+  });
+});
+
+const SCHEDULE_NOTIFICATION_ID = 'scheduled-review-confirmation';
+
+const showScheduledNotification = () => {
+  chrome.notifications.create(SCHEDULE_NOTIFICATION_ID, {
+    type: 'basic',
+    iconUrl: 'logo.png',
+    title: 'Đến giờ lấy Google Reviews',
+    message: 'Bạn có muốn bắt đầu lấy review và lưu vào Google Sheet ngay bây giờ không?',
+    buttons: [
+      { title: 'Đồng ý' },
+      { title: 'Huỷ' }
+    ],
+    requireInteraction: true,
+    priority: 2
+  });
+};
+
+chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
+  if (notificationId !== SCHEDULE_NOTIFICATION_ID) return;
+
+  chrome.notifications.clear(notificationId);
+
+  if (buttonIndex === 1) {
+    chrome.storage.local.remove('scheduledCrawlConfig');
+    return;
+  }
+
+  chrome.storage.local.get('scheduledCrawlConfig', (stored) => {
+    const config = stored.scheduledCrawlConfig;
+    if (!config) return;
+
+    chrome.storage.local.remove('scheduledCrawlConfig');
+    startCrawlSession(config);
+  });
 });
 
 const setupSheet = (spreadsheetId, sheetId, token) => {

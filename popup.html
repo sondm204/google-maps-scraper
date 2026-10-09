@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Khrua Rate Extension</title>
+  <title>Google Review Collector</title>
   <style>
     * {
       box-sizing: border-box;
@@ -150,7 +150,7 @@
       <div id="authorize_button">Đăng nhập</div>
     </div>
     <div class="header">
-      <h1>Khrua Rate Extension</h1>
+      <h1>Google Review Collector</h1>
     </div>
     <div class="input-container">
       <div class="input-row">
@@ -173,9 +173,14 @@
         <textarea name="facilities" id="facilities" rows="8"
           placeholder="Mỗi dòng là một địa điểm, ví dụ:&#10;Koh Yam 34A Quang Trung&#10;Koh Yam 2D Quang Trung"></textarea>
       </div>
+      <div class="input-row">
+        <label for="schedule-time">Thời gian thực hiện</label>
+        <input name="schedule-time" id="schedule-time" type="datetime-local">
+      </div>
     </div>
     <div class="btn-container">
       <button class="btn" id="execute_button">Bắt đầu</button>
+      <button class="btn" id="schedule_button" style="margin-top: 8px;">Hẹn lịch</button>
     </div>
   </div>
 

@@ -1,16 +1,18 @@
 {
   "manifest_version": 3,
-  "name": "Khrua",
-  "description": "Base Level Extension",
+  "name": "Google Review Collector",
+  "description": "Thu thập đánh giá địa điểm trên Google và xuất dữ liệu sang Google Sheets.",
   "version": "1.0",
   "action": {
     "default_popup": "popup.html",
-    "default_icon": "images.png"
+    "default_icon": "logo.png"
   },
   "permissions": [
     "identity",
     "storage",
     "tabs",
+    "alarms",
+    "notifications",
     "https://www.googleapis.com/*"
   ],
   "background": {
