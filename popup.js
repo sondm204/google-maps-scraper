@@ -1,20 +1,6 @@
 const authorizeButton = document.getElementById('authorize_button');
 const accountInfo = document.getElementById('account-info');
-const dateFromInput = document.getElementById('date-from');
-const dateToInput = document.getElementById('date-to');
-
-function formatLocalDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-const today = new Date();
-const sevenDaysAgo = new Date(today);
-sevenDaysAgo.setDate(today.getDate() - 7);
-dateFromInput.value = formatLocalDate(sevenDaysAgo);
-dateToInput.value = formatLocalDate(today);
+const reviewPeriodInput = document.getElementById('review-period');
 
 function renderUser(user) {
   document.getElementById('avatar').src = user.picture || '';
@@ -54,13 +40,7 @@ document.getElementById('execute_button').addEventListener('click', () => {
     .split(/\r?\n/)
     .map(item => item.trim())
     .filter(Boolean);
-  const dateFrom = dateFromInput.value;
-  const dateTo = dateToInput.value;
-
-  if (!dateFrom || !dateTo || dateFrom > dateTo) {
-    console.error('Khoảng ngày không hợp lệ');
-    return;
-  }
+  const reviewPeriod = reviewPeriodInput.value || 'week';
 
   if (facilities.length === 0) {
     console.error('Vui lòng nhập ít nhất một địa điểm');
@@ -73,8 +53,7 @@ document.getElementById('execute_button').addEventListener('click', () => {
       spreadsheetId,
       sheetName,
       facilities,
-      dateFrom,
-      dateTo,
+      reviewPeriod,
     }
   });
 });

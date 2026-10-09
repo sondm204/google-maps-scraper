@@ -10,8 +10,7 @@ let spreadsheetId = null;
 let sheetName = null;
 let sheetId = null;
 let facility = null;
-let dateFrom = null;
-let dateTo = null;
+let reviewPeriod = 'week';
 
 let currentTabIndex = 0;
 let isMultiProcess = false;
@@ -76,11 +75,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       spreadsheetId = request.values.spreadsheetId || "";
       sheetName = request.values.sheetName || 'Đặt tên sheet';
       facility = request.values.facility || '';
-      dateFrom = request.values.dateFrom || '';
-      dateTo = request.values.dateTo || '';
+      reviewPeriod = request.values.reviewPeriod || 'week';
       const searchContent = facility
       chrome.storage.local.set({
-        crawlConfig: { spreadsheetId, sheetName, facility, dateFrom, dateTo }
+        crawlConfig: { spreadsheetId, sheetName, facility, reviewPeriod }
       }, () => {
         chrome.tabs.create({
           url: "https://www.google.com/search?q=" + encodeURIComponent(searchContent)
@@ -94,8 +92,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.values) {
       spreadsheetId = request.values.spreadsheetId || "";
       sheetName = request.values.sheetName || 'Đặt tên sheet';
-      dateFrom = request.values.dateFrom || '';
-      dateTo = request.values.dateTo || '';
+      reviewPeriod = request.values.reviewPeriod || 'week';
       facilitiesAll = Array.isArray(request.values.facilities)
         ? request.values.facilities
         : [];
@@ -107,8 +104,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           facility: '',
           facilities: facilitiesAll,
           currentTabIndex: 0,
-          dateFrom,
-          dateTo
+          reviewPeriod
         }
       }, () => {
         currentTabIndex = 0;
@@ -119,14 +115,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'tabProcessed') {
+    const processedTabId = sender.tab?.id;
     chrome.storage.local.get('crawlConfig', (stored) => {
       const config = stored.crawlConfig || {};
       facilitiesAll = Array.isArray(config.facilities) ? config.facilities : [];
       spreadsheetId = config.spreadsheetId || '';
       sheetName = config.sheetName || '';
-      dateFrom = config.dateFrom || '';
-      dateTo = config.dateTo || '';
+      reviewPeriod = config.reviewPeriod || 'week';
       currentTabIndex = (config.currentTabIndex ?? 0) + 1;
+
+      if (currentTabIndex >= facilitiesAll.length) {
+        isMultiProcess = false;
+        console.log('✅ Đã xử lý và lưu thành công tất cả địa điểm.');
+
+        if (processedTabId !== undefined) {
+          chrome.tabs.sendMessage(processedTabId, {
+            action: 'processComplete',
+            processedCount: facilitiesAll.length
+          }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn('Không thể hiển thị thông báo hoàn tất:', chrome.runtime.lastError.message);
+            }
+          });
+        }
+        return;
+      }
+
       isMultiProcess = true;
       createTabSequentially();
     });
@@ -143,8 +157,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       spreadsheetId = spreadsheetId || config.spreadsheetId || '';
       sheetName = sheetName || config.sheetName || '';
       facility = facility || config.facility || '';
-      dateFrom = dateFrom || config.dateFrom || '';
-      dateTo = dateTo || config.dateTo || '';
+      reviewPeriod = config.reviewPeriod || reviewPeriod || 'week';
 
       if (!spreadsheetId || !sheetName) {
         sendResponse({ success: false, error: 'Thiếu Spreadsheet ID hoặc tên Sheet' });
@@ -503,9 +516,16 @@ const fetchDataToSheet = (spreadsheetId, sheetId, token) => {
     ]
   }));
 
+  const reviewers = (feedbackData.reviewer || []).map(reviewer => ({
+    values: [
+      { userEnteredValue: { stringValue: reviewer } }
+    ]
+  }));
+
   const reviewRows = Array.from({ length: numberRows }, (_, index) => ({
     values: [
       { userEnteredValue: { stringValue: facility } },
+      reviewers[index]?.values?.[0] || { userEnteredValue: { stringValue: '' } },
       rates[index]?.values?.[0] || { userEnteredValue: { stringValue: '' } },
       comments[index]?.values?.[0] || { userEnteredValue: { stringValue: '' } }
     ]
@@ -518,13 +538,38 @@ const fetchDataToSheet = (spreadsheetId, sheetId, token) => {
           rows: [
             {
               values: [
-                { userEnteredValue: { stringValue: 'Địa điểm' } },
-                { userEnteredValue: { stringValue: 'Rate' } },
-                { userEnteredValue: { stringValue: 'Chi tiết' } }
+                {
+                  userEnteredValue: { stringValue: 'Địa điểm' },
+                  userEnteredFormat: {
+                    backgroundColor: { red: 63 / 255, green: 86 / 255, blue: 183 / 255 },
+                    textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } }
+                  }
+                },
+                {
+                  userEnteredValue: { stringValue: 'Người đánh giá' },
+                  userEnteredFormat: {
+                    backgroundColor: { red: 63 / 255, green: 86 / 255, blue: 183 / 255 },
+                    textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } }
+                  }
+                },
+                {
+                  userEnteredValue: { stringValue: 'Rate' },
+                  userEnteredFormat: {
+                    backgroundColor: { red: 63 / 255, green: 86 / 255, blue: 183 / 255 },
+                    textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } }
+                  }
+                },
+                {
+                  userEnteredValue: { stringValue: 'Chi tiết' },
+                  userEnteredFormat: {
+                    backgroundColor: { red: 63 / 255, green: 86 / 255, blue: 183 / 255 },
+                    textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } }
+                  }
+                }
               ]
             }
           ],
-          fields: 'userEnteredValue',
+          fields: 'userEnteredValue,userEnteredFormat',
           start: {
             sheetId: sheetId,
             rowIndex: 0,
@@ -539,7 +584,7 @@ const fetchDataToSheet = (spreadsheetId, sheetId, token) => {
             startRowIndex: nextRow,
             endRowIndex: nextRow + numberRows,
             startColumnIndex: 0,
-            endColumnIndex: 3
+            endColumnIndex: 4
           },
           rows: reviewRows,
           fields: 'userEnteredValue'
@@ -547,6 +592,10 @@ const fetchDataToSheet = (spreadsheetId, sheetId, token) => {
       }
     ]
   };
+
+  if (numberRows === 0) {
+    body.requests.pop();
+  }
 
   return fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
     method: "POST",
@@ -615,8 +664,7 @@ const createTabSequentially = () => {
         facility,
         facilities: facilitiesAll,
         currentTabIndex,
-        dateFrom,
-        dateTo
+        reviewPeriod
       }
     }, () => {
       chrome.tabs.create({ url: "https://www.google.com/search?q=" + encodeURIComponent(query) });

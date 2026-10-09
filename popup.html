@@ -161,12 +161,13 @@
         <input name="sheet-name" type="text" placeholder="Tên Sheet">
       </div>
       <div class="input-row">
-        <label for="date-from">Từ ngày</label>
-        <input name="date-from" id="date-from" type="date">
-      </div>
-      <div class="input-row">
-        <label for="date-to">Đến ngày</label>
-        <input name="date-to" id="date-to" type="date">
+        <label for="review-period">Khoảng thời gian</label>
+        <select name="review-period" id="review-period">
+          <option value="day">1 ngày</option>
+          <option value="week" selected>1 tuần</option>
+          <option value="month">1 tháng</option>
+          <option value="year">1 năm</option>
+        </select>
       </div>
       <div class="input-row">
         <textarea name="facilities" id="facilities" rows="8"

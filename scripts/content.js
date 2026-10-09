@@ -4,10 +4,15 @@ waitForElement('a.hoX6Hc[jsaction="FNFY6c"][role="button"]').then(fbLink => {
 
 const feedbackData = new Map();
 
+chrome.runtime.onMessage.addListener((request) => {
+    if (request.action === 'processComplete') {
+        alert(`Đã lấy review và lưu vào Google Sheet thành công cho ${request.processedCount} địa điểm.`);
+    }
+});
+
 waitForElement('[jsaction="click:pwGece"]').then(async () => {
     const stored = await chrome.storage.local.get('crawlConfig');
-    const dateFrom = parseDateInput(stored.crawlConfig?.dateFrom, false);
-    const dateTo = parseDateInput(stored.crawlConfig?.dateTo, true);
+    const reviewPeriod = stored.crawlConfig?.reviewPeriod || 'week';
 
     const listBtn = document.querySelectorAll('div[jsaction="click:pwGece"]');
     listBtn[1].click();
@@ -22,35 +27,18 @@ waitForElement('[jsaction="click:pwGece"]').then(async () => {
     let listFb = Array.from(listFbWrap.children);
     console.log('Số review tìm thấy trong .OG9A1:', listFb.length);
 
-    async function scrollUntilTimeOfLastChanges() {
-        let timeOfLast = listFb[listFb.length - 1].querySelector('.y3Ibjb').innerHTML.trim();
-
-        while (!timeOfLast.includes('tháng')) {
-            const scrollBar = document.querySelector('.RVCQse');
-            scrollBar.scrollTop = scrollBar.scrollHeight;
-
-            await new Promise(resolve => setTimeout(resolve, 100));  // Thêm delay 100ms
-
-            const reviewContainer = document.querySelector('div[jsname="GmP9w"] > div.OG9A1');
-            if (!reviewContainer) break;
-            listFb = Array.from(reviewContainer.children);
-            console.log('Số review sau khi cuộn:', listFb.length);
-            timeOfLast = listFb[listFb.length - 1].querySelector('.y3Ibjb').innerHTML.trim();
-
-        }
-        return listFb;
-    }
-    async function loadReviewsByDateRange(startDate, endDate) {
+    async function loadReviewsByPeriod(period) {
         const maxScrollAttempts = 100;
         let unchangedAttempts = 0;
         let previousCount = listFb.length;
 
         for (let attempt = 0; attempt < maxScrollAttempts; attempt++) {
-            const lastReview = listFb[listFb.length - 1];
-            const lastTimeText = lastReview?.querySelector('.y3Ibjb')?.textContent?.trim() || '';
-            const lastReviewDate = parseGoogleRelativeTime(lastTimeText);
+            const boundaryIndex = listFb.findIndex(review => {
+                const timeText = review.querySelector('.y3Ibjb')?.textContent?.trim() || '';
+                return isPeriodBoundary(timeText, period);
+            });
 
-            if (lastReviewDate && startDate && lastReviewDate < startDate) break;
+            if (boundaryIndex >= 0) return listFb.slice(0, boundaryIndex);
 
             const scrollBar = document.querySelector('.RVCQse');
             if (!scrollBar) break;
@@ -73,32 +61,26 @@ waitForElement('[jsaction="click:pwGece"]').then(async () => {
             }
         }
 
-        return listFb.filter(review => {
-            const timeText = review.querySelector('.y3Ibjb')?.textContent?.trim() || '';
-            const reviewDate = parseGoogleRelativeTime(timeText);
-            if (!reviewDate) return false;
-            return (!startDate || reviewDate >= startDate) &&
-                (!endDate || reviewDate <= endDate);
-        });
+        return listFb;
     }
 
-    const finalList = await loadReviewsByDateRange(dateFrom, dateTo);
+    const finalList = await loadReviewsByPeriod(reviewPeriod);
 
     const promises = finalList.map(async (fb, index) => {
         const data_id = fb.getAttribute('data-id');
+        const reviewer = fb.querySelector('.rhtdWc')?.textContent?.trim() || '';
         const rate = getReviewRate(fb);
         const time = fb.querySelector('.y3Ibjb')?.textContent?.trim() || '';
 
-        // Không lọc theo thời gian trong chế độ lấy 10 review gần nhất.
-
         const commentElement = fb.querySelector('div.gbdaZe .d83Iyc');
         const comment = getTextWithLineBreaks(commentElement);
-        feedbackData.set(index, { rate, time, comment });
+        feedbackData.set(index, { reviewer, rate, time, comment });
     });
 
     Promise.all(promises).then(() => {
         const result = {
             number: 0,
+            reviewer: [],
             comment: [],
             rate: [],
             time: []
@@ -109,6 +91,7 @@ waitForElement('[jsaction="click:pwGece"]').then(async () => {
         // Duyệt qua các phần tử đã sắp xếp và xây dựng kết quả
         sortedFeedbackData.forEach(([index, value]) => {
             result.number = result.number + 1;
+            result.reviewer.push(value.reviewer);
             result.comment.push(value.comment);
             result.rate.push(value.rate);
             result.time.push(value.time);
@@ -139,45 +122,33 @@ waitForElement('[jsaction="click:pwGece"]').then(async () => {
     });
 });
 
-function parseDateInput(value, endOfDay) {
-    if (!value) return null;
+function isPeriodBoundary(value, period) {
+    const text = (value || '').toLowerCase().trim();
+    if (!text) return false;
 
-    const [year, month, day] = value.split('-').map(Number);
-    if (!year || !month || !day) return null;
+    const unitRanks = {
+        'phút': 0,
+        'giờ': 1,
+        'ngày': 2,
+        'tuần': 3,
+        'tháng': 4,
+        'năm': 5
+    };
+    const periodRanks = {
+        day: unitRanks['ngày'],
+        week: unitRanks['tuần'],
+        month: unitRanks['tháng'],
+        year: unitRanks['năm']
+    };
 
-    return endOfDay
-        ? new Date(year, month - 1, day, 23, 59, 59, 999)
-        : new Date(year, month - 1, day, 0, 0, 0, 0);
-}
-
-function parseGoogleRelativeTime(value) {
-    if (!value) return null;
-
-    const text = value.toLowerCase().trim();
-    const result = new Date();
-
-    if (text.includes('vừa xong') || text.includes('mới đây')) return result;
     if (text.includes('hôm qua')) {
-        result.setDate(result.getDate() - 1);
-        return result;
+        return unitRanks['ngày'] >= (periodRanks[period] ?? periodRanks.week);
     }
 
-    const match = text.match(/(\d+|một|mot)\s+(phút|giờ|ngày|tuần|tháng|năm)/i);
-    if (!match) return null;
+    const matchedUnit = Object.keys(unitRanks).find(unit => text.includes(unit));
+    if (!matchedUnit) return false;
 
-    const amount = match[1] === 'một' || match[1] === 'mot'
-        ? 1
-        : Number(match[1]);
-    const unit = match[2];
-
-    if (unit === 'phút') result.setMinutes(result.getMinutes() - amount);
-    if (unit === 'giờ') result.setHours(result.getHours() - amount);
-    if (unit === 'ngày') result.setDate(result.getDate() - amount);
-    if (unit === 'tuần') result.setDate(result.getDate() - amount * 7);
-    if (unit === 'tháng') result.setMonth(result.getMonth() - amount);
-    if (unit === 'năm') result.setFullYear(result.getFullYear() - amount);
-
-    return result;
+    return unitRanks[matchedUnit] >= (periodRanks[period] ?? periodRanks.week);
 }
 
 function getReviewRate(reviewElement) {
