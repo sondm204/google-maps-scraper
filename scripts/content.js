@@ -134,28 +134,37 @@ function isPeriodBoundary(value, period) {
     if (!text) return false;
 
     const unitRanks = {
-        'phút': 0,
-        'giờ': 1,
-        'ngày': 2,
-        'tuần': 3,
-        'tháng': 4,
-        'năm': 5
+        minute: 0,
+        hour: 1,
+        day: 2,
+        week: 3,
+        month: 4,
+        year: 5
     };
     const periodRanks = {
-        day: unitRanks['ngày'],
-        week: unitRanks['tuần'],
-        month: unitRanks['tháng'],
-        year: unitRanks['năm']
+        day: unitRanks.day,
+        week: unitRanks.week,
+        month: unitRanks.month,
+        year: unitRanks.year
     };
+    const boundaryRank = periodRanks[period] ?? periodRanks.week;
+    const unitMatchers = [
+        { rank: unitRanks.minute, test: text => text.includes('phút') || /\b(minute|minutes|min|mins)\b/.test(text) },
+        { rank: unitRanks.hour, test: text => text.includes('giờ') || /\b(hour|hours|hr|hrs)\b/.test(text) },
+        { rank: unitRanks.day, test: text => text.includes('ngày') || /\b(day|days)\b/.test(text) },
+        { rank: unitRanks.week, test: text => text.includes('tuần') || /\b(week|weeks)\b/.test(text) },
+        { rank: unitRanks.month, test: text => text.includes('tháng') || /\b(month|months)\b/.test(text) },
+        { rank: unitRanks.year, test: text => text.includes('năm') || /\b(year|years)\b/.test(text) }
+    ];
 
-    if (text.includes('hôm qua')) {
-        return unitRanks['ngày'] >= (periodRanks[period] ?? periodRanks.week);
+    if (text.includes('hôm qua') || text.includes('yesterday')) {
+        return unitRanks.day >= boundaryRank;
     }
 
-    const matchedUnit = Object.keys(unitRanks).find(unit => text.includes(unit));
+    const matchedUnit = unitMatchers.find(({ test }) => test(text));
     if (!matchedUnit) return false;
 
-    return unitRanks[matchedUnit] >= (periodRanks[period] ?? periodRanks.week);
+    return matchedUnit.rank >= boundaryRank;
 }
 
 function getReviewRate(reviewElement) {
