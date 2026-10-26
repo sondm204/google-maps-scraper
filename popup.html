@@ -155,16 +155,16 @@
     <div class="input-container">
       <div class="input-row">
         <input type="text" name="spreadsheet" id="spreadsheet" disabled
-          value="1BEnway_QOzNF_CnQSV541q23eFk5g5azEcuUX_pLCyU">
+          value="">
       </div>
       <div class="input-row">
-        <input name="sheet-name" type="text" placeholder="Tên Sheet">
+        <input name="sheet-name" type="text" value="01 | Nhập data" readonly>
       </div>
       <div class="input-row">
         <label for="review-period">Khoảng thời gian</label>
         <select name="review-period" id="review-period">
-          <option value="day">1 ngày</option>
-          <option value="week" selected>1 tuần</option>
+          <option value="day" selected>1 ngày</option>
+          <option value="week">1 tuần</option>
           <option value="month">1 tháng</option>
           <option value="year">1 năm</option>
         </select>
@@ -173,17 +173,16 @@
         <textarea name="facilities" id="facilities" rows="8"
           placeholder="Mỗi dòng là một địa điểm, ví dụ:&#10;Koh Yam 34A Quang Trung&#10;Koh Yam 2D Quang Trung"></textarea>
       </div>
-      <div class="input-row">
-        <label for="schedule-time">Thời gian thực hiện</label>
-        <input name="schedule-time" id="schedule-time" type="datetime-local">
-      </div>
+      <p>Tự động chạy lúc <span id="daily-time">21:25</span> hằng ngày (giờ Việt Nam), lấy review trong 1 ngày
+        tại các địa điểm mặc định. Ngày 1 chỉ lấy từ 00:00; ngày cuối tháng chạy thêm lúc 23:59.
+        Hiện thông báo trước khi bắt đầu 10 giây.</p>
     </div>
     <div class="btn-container">
       <button class="btn" id="execute_button">Bắt đầu</button>
-      <button class="btn" id="schedule_button" style="margin-top: 8px;">Hẹn lịch</button>
     </div>
   </div>
 
+  <script src="config.js"></script>
   <script src="popup.js"></script>
 </body>
 

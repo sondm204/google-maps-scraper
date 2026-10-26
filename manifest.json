@@ -3,7 +3,7 @@
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyLxh4HmtYQ64jRlpyVyV1yQ5VATcPInsFspK2Un4yy4LXFaNG3wOWHj5kCaGNwJ12fesORC/W63344AhyPjvgdcUQlwsm5zhh0dwwUWLEMJ/02sBYd4Sz41InIr1RYL3UcBWgas19D+4kW5x1rg8yhf+ktV/pC9Ud1abTDukwheUfGQ/kq48n2QjMOwiHtGkmztAM7xFgrQMymBC1I+gUH6DCrje/BrebpIryIqLN+PVRhQ/i1kH3usFgTP1/Sr6qQ5zy1M6Z9RwH1xQ/it/5SkXqM/e+ZVi3rirlq5ozQbWbEqQNyGYx1JYapqIpK0OFu5IK4kNrWnQE8AIdHDCLQIDAQAB",
   "name": "Google Review Collector",
   "description": "Thu thập đánh giá địa điểm trên Google và xuất dữ liệu sang Google Sheets.",
-  "version": "1.0",
+  "version": "1.1.0",
   "action": {
     "default_popup": "popup.html",
     "default_icon": "logo.png"
@@ -13,8 +13,7 @@
     "storage",
     "tabs",
     "alarms",
-    "notifications",
-    "https://www.googleapis.com/*"
+    "notifications"
   ],
   "background": {
     "service_worker": "background.js"
@@ -28,11 +27,14 @@
       "https://www.googleapis.com/auth/userinfo.email"
     ]
   },
-  "host_permissions": ["https://www.googleapis.com/*"],
+  "host_permissions": [
+    "https://www.googleapis.com/*",
+    "https://sheets.googleapis.com/*"
+  ],
 
   "content_scripts": [
     {
-      "js": ["scripts/content.js"],
+      "js": ["scripts/review-time.js", "scripts/content.js"],
       "matches": ["https://www.google.com/*"]
     }
   ]

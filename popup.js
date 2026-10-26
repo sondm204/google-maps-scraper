@@ -1,6 +1,13 @@
 const authorizeButton = document.getElementById('authorize_button');
 const accountInfo = document.getElementById('account-info');
 const reviewPeriodInput = document.getElementById('review-period');
+const defaults = globalThis.REVIEW_COLLECTOR_DEFAULTS;
+document.getElementById('daily-time').textContent =
+  `${String(defaults.dailyHour).padStart(2, '0')}:${String(defaults.dailyMinute).padStart(2, '0')}`;
+document.getElementById('spreadsheet').value = defaults.spreadsheetId;
+document.querySelector('input[name="sheet-name"]').value = defaults.sheetName;
+document.getElementById('facilities').value = defaults.facilities.join('\n');
+reviewPeriodInput.value = defaults.reviewPeriod;
 
 function renderUser(user) {
   document.getElementById('avatar').src = user.picture || '';
@@ -66,31 +73,10 @@ document.getElementById('execute_button').addEventListener('click', () => {
   chrome.runtime.sendMessage({
     action: "startMultiProcess",
     values
-  });
-});
-
-document.getElementById('schedule_button').addEventListener('click', () => {
-  const values = getTaskValues();
-  if (!validateTask(values)) return;
-
-  const scheduleValue = document.getElementById('schedule-time').value;
-  const scheduledAt = new Date(scheduleValue).getTime();
-
-  if (!scheduleValue || Number.isNaN(scheduledAt) || scheduledAt <= Date.now()) {
-    alert('Vui lòng chọn thời gian trong tương lai.');
-    return;
-  }
-
-  chrome.runtime.sendMessage({
-    action: 'scheduleProcess',
-    values: { ...values, scheduledAt }
   }, (response) => {
     if (chrome.runtime.lastError || !response?.success) {
-      alert(`Không thể hẹn lịch: ${response?.error || chrome.runtime.lastError?.message || 'Lỗi không xác định'}`);
-      return;
+      alert(`Không thể bắt đầu: ${response?.error || chrome.runtime.lastError?.message || 'Lỗi không xác định'}`);
     }
-
-    alert(`Đã hẹn lịch lúc ${new Date(scheduledAt).toLocaleString('vi-VN')}.`);
   });
 });
 
